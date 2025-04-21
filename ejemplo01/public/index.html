@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Notificaciones</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    #notifications {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .notification {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .info {
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196F3;
+    }
+    .success {
+      background-color: #e8f5e9;
+      border-left: 4px solid #4CAF50;
+    }
+    .warning {
+      background-color: #fff8e1;
+      border-left: 4px solid #FFC107;
+    }
+    .error {
+      background-color: #ffebee;
+      border-left: 4px solid #F44336;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-info {
+      background-color: #2196F3;
+      color: white;
+    }
+    .btn-success {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .btn-warning {
+      background-color: #FFC107;
+      color: black;
+    }
+    .btn-error {
+      background-color: #F44336;
+      color: white;
+    }
+    .timestamp {
+      font-size: 0.8em;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sistema de Notificaciones en Tiempo Real</h1>
+  
+  <div class="controls">
+    <button class="btn-info" onclick="triggerNotification('info')">Info</button>
+    <button class="btn-success" onclick="triggerNotification('success')">Éxito</button>
+    <button class="btn-warning" onclick="triggerNotification('warning')">Advertencia</button>
+    <button class="btn-error" onclick="triggerNotification('error')">Error</button>
+  </div>
+  
+  <h2>Notificaciones</h2>
+  <div id="notifications"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Conectar a Socket.io
+    const socket = io();
+    
+    // Contenedor de notificaciones
+    const notificationsContainer = document.getElementById('notifications');
+    
+    // Cuando se recibe una notificación
+    socket.on('notification', (notification) => {
+      // Crear elemento de notificación
+      const notifElement = document.createElement('div');
+      notifElement.className = `notification ${notification.type}`;
+      
+      // Contenido de la notificación
+      const message = document.createElement('div');
+      message.textContent = notification.message;
+      
+      // Timestamp
+      const timestamp = document.createElement('div');
+      timestamp.className = 'timestamp';
+      const date = new Date(notification.timestamp);
+      timestamp.textContent = date.toLocaleString();
+      
+      // Añadir a la notificación
+      notifElement.appendChild(message);
+      notifElement.appendChild(timestamp);
+      
+      // Añadir al contenedor
+      notificationsContainer.prepend(notifElement); // Mostrar la más reciente arriba
+      
+      // También mostrar notificación nativa del navegador (si está permitido)
+      if (Notification && Notification.permission === "granted") {
+        new Notification("Nueva notificación", { body: notification.message });
+      } else if (Notification && Notification.permission !== "denied") {
+        Notification.requestPermission().then(function (permission) {
+          if (permission === "granted") {
+            new Notification("Nueva notificación", { body: notification.message });
+          }
+        });
+      }
+    });
+    
+    // Función para triggerear notificaciones manualmente
+    function triggerNotification(type) {
+      socket.emit('triggerNotification', type);
+    }
+    
+    // Conectado al servidor
+    socket.on('connect', () => {
+      console.log('Conectado al servidor de notificaciones');
+    });
+    
+    // Desconectado del servidor
+    socket.on('disconnect', () => {
+      console.log('Desconectado del servidor de notificaciones');
+    });
+  </script>
+</body>
+</html>
